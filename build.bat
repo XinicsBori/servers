@@ -1,0 +1,1 @@
+docker build --no-cache -t mcp/bori-postgres -f src/postgres/Dockerfile .
