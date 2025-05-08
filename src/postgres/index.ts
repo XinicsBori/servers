@@ -110,16 +110,22 @@ server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const resourceUrl = new URL(request.params.uri);
     const pathComponents = resourceUrl.pathname.split("/");
+
     const schema = pathComponents.pop();
     const tableName = pathComponents.pop();
     const database = pathComponents.pop() || DEFAULT_DATABASE;
+
     if (schema !== SCHEMA_PATH) {
         throw new Error("Invalid resource URI");
     }
+
     const pool = getPool(database);
+
     const client = await pool.connect();
+
     try {
         const result = await client.query("SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = $1", [tableName]);
+
         return {
             contents: [
                 {
@@ -168,9 +174,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const database = request.params.arguments?.database || DEFAULT_DATABASE;
         const pool = getPool(database);
         const client = await pool.connect();
+
         try {
             await client.query("BEGIN TRANSACTION READ ONLY");
             const result = await client.query(sql);
+            
             return {
                 content: [{ type: "text", text: JSON.stringify(result.rows, null, 2) }],
                 isError: false,
