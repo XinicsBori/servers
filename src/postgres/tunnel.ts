@@ -28,7 +28,7 @@ async function connectWithTunnel(args: DbConnectArgs): Promise<pg.PoolClient[]> 
             username: args.sshUser,
         };
 
-        if (args.sshPrivateKeyPath) {
+        if (args.sshPrivateKeyPath) { // 현재는 password만 사용.
             try {
                 sshConfig.privateKey = fs.readFileSync(args.sshPrivateKeyPath);
                 if (args.sshPassphrase) {
