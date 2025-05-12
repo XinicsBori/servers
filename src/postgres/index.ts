@@ -229,7 +229,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
 
 async function runServer() {
     const transport = new StdioServerTransport();
+    
+    // Add event listeners for process termination
+    process.on('SIGINT', () => cleanupAndExit());
+    process.on('SIGTERM', () => cleanupAndExit());
+    
+    // Handle stdin close (client disconnection)
+    process.stdin.on('close', () => {
+        cleanupAndExit();
+    });
+    
     await server.connect(transport);
+}
+
+// Clean up function to close all connections and exit
+function cleanupAndExit() {
+    console.log('Shutting down server...');
+    
+    // Close database connections
+    if (haksaSisClient) {
+        haksaSisClient.release();
+    }
+    if (canvasProductionClient) {
+        canvasProductionClient.release();
+    }
+    
+    // Close pools
+    Promise.all([
+        haksaSisPool.end(),
+        canvasProductionPool.end()
+    ]).then(() => {
+        console.log('Database connections closed.');
+        process.exit(0);
+    }).catch(err => {
+        console.error('Error closing database connections:', err);
+        process.exit(1);
+    });
 }
 
 runServer().catch(console.error);
