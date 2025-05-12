@@ -9,6 +9,7 @@ import {
     ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import pg from "pg";
+import { connectWithTunnel } from "./tunnel.js";
 
 const server = new Server(
     {
@@ -24,18 +25,18 @@ const server = new Server(
 );
 
 const args = process.argv.slice(2);
-if (args.length < 2) {
-    console.error("Please provide a database user and password as command-line arguments");
-    process.exit(1);
-}
 
-const databaseIp = args[0];
-const databasePort = args[1];
+const databaseIp = args.length >= 1 ? args[0] : null;
+const databasePort = args.length >= 2 ? args[1] : null;
 const databaseUser = args.length >= 3 ? args[2] : null;
 const password = args.length >= 4 ? args[3] : null;
+const tunnelIp = args.length >= 5 ? args[4] : null;
+const tunnelPort = args.length >= 6 ? args[5] : null;
+const tunnelUsername = args.length >= 7 ? args[6] : null;
+const tunnelPassword = args.length >= 8 ? args[7] : null;
 
-if (!databaseUser || !password) {
-    console.error("Database user and password are required");
+if (!databaseIp || !databasePort || !databaseUser || !password) {
+    console.error("Database arguments are required");
     process.exit(1);
 }
 
@@ -52,14 +53,42 @@ const canvasProductionPool = new pg.Pool({
     connectionString: databaseUrl + "/canvas_production",
 });
 
+let haksaSisClient: pg.PoolClient | null = null;
+let canvasProductionClient: pg.PoolClient | null = null;
+
+try {
+    if (tunnelIp && tunnelPort && tunnelUsername && tunnelPassword) {
+        const clients = await connectWithTunnel({
+            dbHostRemote: databaseIp,
+            dbPortRemote: parseInt(databasePort),
+            dbUser: databaseUser,
+            dbPassword: password,
+            sshHost: tunnelIp,
+            sshPort: parseInt(tunnelPort),
+            sshUser: tunnelUsername,
+            sshPassword: tunnelPassword,
+        });
+
+        haksaSisClient = clients[0];
+        canvasProductionClient = clients[1];
+    } else {
+        haksaSisClient = await haksaSisPool.connect();
+        canvasProductionClient = await canvasProductionPool.connect();
+    }
+}
+catch (error) {
+    console.error("Error connecting to database:", error);
+    process.exit(1);
+}
+
 // Function to get the appropriate pool based on database name
-const getPool = (database: string) => {
+const getPoolClient = (database: string) => {
     switch (database) {
         case "haksa_sis":
-            return haksaSisPool;
+            return haksaSisClient;
         case "canvas_production":
         default:
-            return canvasProductionPool;
+            return canvasProductionClient;
     }
 };
 
@@ -69,7 +98,7 @@ const SCHEMA_PATH = "schema";
 
 server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
     // Query haksa_sis database tables
-    const haksaClient = await haksaSisPool.connect();
+    const haksaClient = getPoolClient("haksa_sis");
     let haksaResults;
     
     try {
@@ -80,7 +109,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
     }
 
     // Query canvas_production database tables
-    const canvasClient = await canvasProductionPool.connect();
+    const canvasClient = getPoolClient("canvas_production");
     let canvasResults;
     try {
         canvasResults = await canvasClient.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
@@ -119,9 +148,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         throw new Error("Invalid resource URI");
     }
 
-    const pool = getPool(database);
-
-    const client = await pool.connect();
+    const client = getPoolClient(database);
 
     try {
         const result = await client.query("SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = $1", [tableName]);
@@ -172,8 +199,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     if (request.params.name === "query") {
         const sql = request.params.arguments?.sql;
         const database = request.params.arguments?.database || DEFAULT_DATABASE;
-        const pool = getPool(database);
-        const client = await pool.connect();
+        const client = getPoolClient(database);
 
         try {
             await client.query("BEGIN TRANSACTION READ ONLY");
@@ -199,7 +225,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
 
 async function runServer() {
     const transport = new StdioServerTransport();
+    
+    // Add event listeners for process termination
+    process.on('SIGINT', () => cleanupAndExit());
+    process.on('SIGTERM', () => cleanupAndExit());
+    
+    // Handle stdin close (client disconnection)
+    process.stdin.on('close', () => {
+        cleanupAndExit();
+    });
+    
     await server.connect(transport);
+}
+
+// Clean up function to close all connections and exit
+function cleanupAndExit() {
+    console.log('Shutting down server...');
+    
+    // Close database connections
+    if (haksaSisClient) {
+        haksaSisClient.release();
+    }
+    if (canvasProductionClient) {
+        canvasProductionClient.release();
+    }
+    
+    // Close pools
+    Promise.all([
+        haksaSisPool.end(),
+        canvasProductionPool.end()
+    ]).then(() => {
+        console.log('Database connections closed.');
+        process.exit(0);
+    }).catch(err => {
+        console.error('Error closing database connections:', err);
+        process.exit(1);
+    });
 }
 
 runServer().catch(console.error);

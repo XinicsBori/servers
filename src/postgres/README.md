@@ -31,7 +31,8 @@ To use this server with the Claude Desktop app, add the following configuration 
 ### Docker
 
 * when running docker on macos, use host.docker.internal if the server is running on the host network (eg localhost)
-* username/password need to be added in `args`.
+* DB host/port/username/password need to be added in `args`.
+* If you want to use ssh tunnel, ssh host/port/username/password are also required.
 
 ```json
 {
@@ -43,8 +44,14 @@ To use this server with the Claude Desktop app, add the following configuration 
         "-i", 
         "--rm", 
         "mcp/bori-postgres",
-        "db_username",
-        "db_password"
+        "DB_HOST",
+        "DB_PORT",
+        "DB_USERNAME",
+        "DB_PASSWORD",
+        "SSH_HOST",
+        "SSH_PORT",
+        "SSH_USERNAME",
+        "SSH_PASSWORD"
       ]
     }
   }
@@ -55,13 +62,7 @@ To use this server with the Claude Desktop app, add the following configuration 
 
 Docker:
 
-Before build, you need to change host address and port in `Dockerfile`
-
-```docker
-ENTRYPOINT ["node", "dist/index.js", "HOST_ADDRESS", "PORT"]
-```
-
-Then you can build with command in CMD:
+You can build with command in CMD:
 
 ```sh
 docker build -t mcp/bori-postgres -f src/postgres/Dockerfile . 
