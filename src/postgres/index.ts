@@ -63,11 +63,12 @@ let canvasProductionClient: pg.PoolClient | null = null;
 try {
     if (tunnelIp && tunnelPort && tunnelUsername && tunnelPassword) {
         const clients = await connectWithTunnel({
-            dbHostRemote: tunnelIp,
-            dbPortRemote: parseInt(tunnelPort),
-            dbUser: tunnelUsername,
-            dbPassword: tunnelPassword,
+            dbHostRemote: databaseIp,
+            dbPortRemote: parseInt(databasePort),
+            dbUser: databaseUser,
+            dbPassword: password,
             sshHost: tunnelIp,
+            sshPort: parseInt(tunnelPort),
             sshUser: tunnelUsername,
             sshPassword: tunnelPassword,
         });
