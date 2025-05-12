@@ -25,22 +25,18 @@ const server = new Server(
 );
 
 const args = process.argv.slice(2);
-if (args.length < 2) {
-    console.error("Please provide a database user and password as command-line arguments");
-    process.exit(1);
-}
 
-const databaseIp = args[0];
-const databasePort = args[1];
-const tunnelIp = args[2];
-const tunnelPort = args[3];
-const databaseUser = args.length >= 5 ? args[4] : null;
-const password = args.length >= 6 ? args[5] : null;
+const databaseIp = args.length >= 1 ? args[0] : null;
+const databasePort = args.length >= 2 ? args[1] : null;
+const databaseUser = args.length >= 3 ? args[2] : null;
+const password = args.length >= 4 ? args[3] : null;
+const tunnelIp = args.length >= 5 ? args[4] : null;
+const tunnelPort = args.length >= 6 ? args[5] : null;
 const tunnelUsername = args.length >= 7 ? args[6] : null;
 const tunnelPassword = args.length >= 8 ? args[7] : null;
 
-if (!databaseUser || !password) {
-    console.error("Database user and password are required");
+if (!databaseIp || !databasePort || !databaseUser || !password) {
+    console.error("Database arguments are required");
     process.exit(1);
 }
 
