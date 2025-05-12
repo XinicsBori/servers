@@ -21,4 +21,4 @@ WORKDIR /app
 
 RUN npm ci --ignore-scripts --omit-dev
 
-ENTRYPOINT ["node", "dist/index.js", "HOST_ADDRESS", "PORT"]
+ENTRYPOINT ["node", "dist/index.js", "101.101.165.26", "5432", "101.101.165.26", "5031"]
