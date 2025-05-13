@@ -24,15 +24,15 @@ The server provides schema information for each table in the database:
 
 ## Configuration
 
+* when running docker on macos, use host.docker.internal if the server is running on the host network (eg localhost)
+* DB host/port/username/password need to be added in `args`.
+* If you want to use ssh tunnel, ssh host/port/username/password are also required.
+
 ### Usage with Claude Desktop
 
 To use this server with the Claude Desktop app, add the following configuration to the "mcpServers" section of your `claude_desktop_config.json`:
 
 ### Docker
-
-* when running docker on macos, use host.docker.internal if the server is running on the host network (eg localhost)
-* DB host/port/username/password need to be added in `args`.
-* If you want to use ssh tunnel, ssh host/port/username/password are also required.
 
 ```json
 {
@@ -58,17 +58,51 @@ To use this server with the Claude Desktop app, add the following configuration 
 }
 ```
 
+### NPX
+
+```json
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "node",
+        "LOCAL_BUILD_FILE_PATH",
+        "DB_HOST",
+        "DB_PORT",
+        "DB_USERNAME",
+        "DB_PASSWORD",
+        "SSH_HOST",
+        "SSH_PORT",
+        "SSH_USERNAME",
+        "SSH_PASSWORD"
+      ]
+    }
+  }
+}
+```
+
 ## Building
 
-Docker:
-
 You can build with command in CMD:
+
+### Docker:
 
 ```sh
 docker build -t mcp/bori-postgres -f src/postgres/Dockerfile . 
 ```
 
-Or just execute `build.bat` file
+Or execute `docker_build.bat` file
+
+### npx
+
+```sh
+cd src/postgres
+npm install
+npm run build
+```
+
+Or execute `npx_build.bat` file
 
 ## License
 
