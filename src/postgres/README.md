@@ -94,7 +94,7 @@ docker build -t mcp/bori-postgres -f src/postgres/Dockerfile .
 
 Or execute `docker_build.bat` file
 
-### npx
+### NPX
 
 ```sh
 cd src/postgres
