@@ -27,6 +27,7 @@ The server provides schema information for each table in the database:
 * when running docker on macos, use host.docker.internal if the server is running on the host network (eg localhost)
 * DB host/port/username/password need to be added in `args`.
 * If you want to use ssh tunnel, ssh host/port/username/password are also required.
+* When you use MCP with npx, you should build first and replace LOCAL_BUILD_FILE_PATH to absolute path of the build file.
 
 ### Usage with Claude Desktop
 
@@ -86,7 +87,7 @@ To use this server with the Claude Desktop app, add the following configuration 
 
 You can build with command in CMD:
 
-### Docker:
+### Docker
 
 ```sh
 docker build -t mcp/bori-postgres -f src/postgres/Dockerfile . 
