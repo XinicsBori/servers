@@ -99,24 +99,12 @@ const SCHEMA_PATH = "schema";
 server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
     // Query haksa_sis database tables
     const haksaClient = getPoolClient("haksa_sis");
-    let haksaResults;
-    
-    try {
-        haksaResults = await haksaClient.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
-    }
-    finally {
-        haksaClient.release();
-    }
+    const haksaResults = await haksaClient.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
 
     // Query canvas_production database tables
     const canvasClient = getPoolClient("canvas_production");
-    let canvasResults;
-    try {
-        canvasResults = await canvasClient.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
-    }
-    finally {
-        canvasClient.release();
-    }
+    const canvasResults = await canvasClient.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+
 
     // Combine results with database prefixes
     const resources = [
@@ -150,22 +138,17 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
     const client = getPoolClient(database);
 
-    try {
-        const result = await client.query("SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = $1", [tableName]);
+    const result = await client.query("SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = $1", [tableName]);
 
-        return {
-            contents: [
-                {
-                    uri: request.params.uri,
-                    mimeType: "application/json",
-                    text: JSON.stringify(result.rows, null, 2),
-                },
-            ],
-        };
-    }
-    finally {
-        client.release();
-    }
+    return {
+        contents: [
+            {
+                uri: request.params.uri,
+                mimeType: "application/json",
+                text: JSON.stringify(result.rows, null, 2),
+            },
+        ],
+    };
 });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -217,7 +200,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
             client
                 .query("ROLLBACK")
                 .catch((error) => console.warn("Could not roll back transaction:", error));
-            client.release();
         }
     }
     throw new Error(`Unknown tool: ${request.params.name}`);
